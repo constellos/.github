@@ -1,0 +1,48 @@
+name: 'E2E Tests'
+description: 'Run Playwright E2E tests'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Check for Playwright config
+      id: check
+      shell: bash
+      run: |
+        if [ ! -f "playwright.config.ts" ] && [ ! -f "playwright.config.js" ]; then
+          echo "No Playwright config found, skipping E2E tests"
+          echo "skip=true" >> $GITHUB_OUTPUT
+        else
+          echo "skip=false" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Check for test:e2e script
+      if: steps.check.outputs.skip != 'true'
+      id: check-script
+      shell: bash
+      run: |
+        if ! grep -q '"test:e2e"' package.json; then
+          echo "No test:e2e script found, skipping E2E tests"
+          echo "skip=true" >> $GITHUB_OUTPUT
+        else
+          echo "skip=false" >> $GITHUB_OUTPUT
+        fi
+
+    - uses: oven-sh/setup-bun@v2
+      if: steps.check.outputs.skip != 'true' && steps.check-script.outputs.skip != 'true'
+      with:
+        bun-version: latest
+
+    - name: Install dependencies
+      if: steps.check.outputs.skip != 'true' && steps.check-script.outputs.skip != 'true'
+      shell: bash
+      run: bun install --frozen-lockfile
+
+    - name: Install Playwright browsers
+      if: steps.check.outputs.skip != 'true' && steps.check-script.outputs.skip != 'true'
+      shell: bash
+      run: bunx playwright install --with-deps chromium
+
+    - name: Run E2E tests
+      if: steps.check.outputs.skip != 'true' && steps.check-script.outputs.skip != 'true'
+      shell: bash
+      run: bun run test:e2e --project=chromium

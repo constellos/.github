@@ -1,0 +1,61 @@
+name: 'Unit Tests'
+description: 'Run unit tests with auto-detected package manager'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Check for package.json and test script
+      id: check
+      shell: bash
+      run: |
+        if [ ! -f "package.json" ]; then
+          echo "No package.json found, skipping tests"
+          echo "skip=true" >> $GITHUB_OUTPUT
+        elif ! grep -q '"test"' package.json; then
+          echo "No test script found, skipping tests"
+          echo "skip=true" >> $GITHUB_OUTPUT
+        else
+          echo "skip=false" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Detect package manager
+      if: steps.check.outputs.skip != 'true'
+      id: pm
+      shell: bash
+      run: |
+        if [ -f "bun.lockb" ] || [ -f "bun.lock" ]; then
+          echo "pm=bun" >> $GITHUB_OUTPUT
+        else
+          echo "pm=npm" >> $GITHUB_OUTPUT
+        fi
+
+    - uses: oven-sh/setup-bun@v2
+      if: steps.check.outputs.skip != 'true' && steps.pm.outputs.pm == 'bun'
+      with:
+        bun-version: latest
+
+    - uses: actions/setup-node@v4
+      if: steps.check.outputs.skip != 'true' && steps.pm.outputs.pm == 'npm'
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Install dependencies (bun)
+      if: steps.check.outputs.skip != 'true' && steps.pm.outputs.pm == 'bun'
+      shell: bash
+      run: bun install --frozen-lockfile
+
+    - name: Install dependencies (npm)
+      if: steps.check.outputs.skip != 'true' && steps.pm.outputs.pm == 'npm'
+      shell: bash
+      run: npm ci
+
+    - name: Run tests (bun)
+      if: steps.check.outputs.skip != 'true' && steps.pm.outputs.pm == 'bun'
+      shell: bash
+      run: bun run test
+
+    - name: Run tests (npm)
+      if: steps.check.outputs.skip != 'true' && steps.pm.outputs.pm == 'npm'
+      shell: bash
+      run: npm run test
