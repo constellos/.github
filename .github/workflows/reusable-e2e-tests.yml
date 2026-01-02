@@ -4,8 +4,7 @@ on:
   workflow_call:
 
 jobs:
-  E2E-Tests-Pass:
-    name: E2E Tests Pass
+  run:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

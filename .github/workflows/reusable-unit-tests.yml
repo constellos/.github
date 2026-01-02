@@ -4,8 +4,7 @@ on:
   workflow_call:
 
 jobs:
-  Unit-Tests-Pass:
-    name: Unit Tests Pass
+  run:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

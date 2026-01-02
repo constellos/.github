@@ -4,8 +4,7 @@ on:
   workflow_call:
 
 jobs:
-  Typecheck:
-    name: Typecheck
+  run:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

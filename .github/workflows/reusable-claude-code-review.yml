@@ -7,8 +7,7 @@ on:
         required: true
 
 jobs:
-  Claude-Code-Review:
-    name: Claude Code Review
+  run:
     runs-on: ubuntu-latest
     permissions:
       contents: read
