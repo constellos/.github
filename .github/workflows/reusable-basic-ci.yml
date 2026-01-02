@@ -1,0 +1,130 @@
+name: Basic CI
+
+# Reusable workflow for lint, typecheck, and unit tests
+# Called from other repositories to run standard CI checks
+
+on:
+  workflow_call:
+    inputs:
+      lint_enabled:
+        description: 'Enable linting'
+        type: boolean
+        default: true
+      typecheck_enabled:
+        description: 'Enable type checking'
+        type: boolean
+        default: true
+      vitest_enabled:
+        description: 'Enable unit tests'
+        type: boolean
+        default: true
+      node_version:
+        description: 'Node.js version to use'
+        type: string
+        default: '22'
+      working_directory:
+        description: 'Working directory for commands'
+        type: string
+        default: '.'
+    outputs:
+      success:
+        description: 'Whether all enabled checks passed'
+        value: ${{ jobs.summary.outputs.success }}
+      lint_result:
+        description: 'Lint job result'
+        value: ${{ jobs.Lint.result }}
+      typecheck_result:
+        description: 'Typecheck job result'
+        value: ${{ jobs.Typecheck.result }}
+      unit_tests_result:
+        description: 'Unit tests job result'
+        value: ${{ jobs.Unit-Tests.result }}
+
+jobs:
+  changed-files:
+    name: Detect Changed Files
+    runs-on: ubuntu-latest
+    outputs:
+      has_ts_files: ${{ steps.filter.outputs.has_ts_files }}
+      has_test_files: ${{ steps.filter.outputs.has_test_files }}
+      ts_files: ${{ steps.filter.outputs.ts_files }}
+      test_files: ${{ steps.filter.outputs.test_files }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get changed files
+        id: filter
+        uses: constellos/.github/actions/changed-files@main
+        with:
+          pattern: '\.(ts|tsx|js|jsx|test\.ts|test\.tsx)$'
+
+  Lint:
+    name: CI / Lint
+    needs: changed-files
+    if: inputs.lint_enabled && needs.changed-files.outputs.has_ts_files == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: constellos/.github/actions/lint@main
+        with:
+          files: ${{ needs.changed-files.outputs.ts_files }}
+          working_directory: ${{ inputs.working_directory }}
+
+  Typecheck:
+    name: CI / Typecheck
+    needs: changed-files
+    if: inputs.typecheck_enabled && needs.changed-files.outputs.has_ts_files == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: constellos/.github/actions/typecheck@main
+        with:
+          files: ${{ needs.changed-files.outputs.ts_files }}
+          working_directory: ${{ inputs.working_directory }}
+
+  Unit-Tests:
+    name: CI / Unit Tests
+    needs: changed-files
+    if: inputs.vitest_enabled && needs.changed-files.outputs.has_test_files == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: constellos/.github/actions/unit-tests@main
+        with:
+          files: ${{ needs.changed-files.outputs.test_files }}
+          working_directory: ${{ inputs.working_directory }}
+
+  summary:
+    name: Basic CI Summary
+    needs: [changed-files, Lint, Typecheck, Unit-Tests]
+    if: always()
+    runs-on: ubuntu-latest
+    outputs:
+      success: ${{ steps.check.outputs.success }}
+
+    steps:
+      - name: Check results
+        id: check
+        run: |
+          LINT_RESULT="${{ needs.Lint.result }}"
+          TYPECHECK_RESULT="${{ needs.Typecheck.result }}"
+          UNIT_TESTS_RESULT="${{ needs.Unit-Tests.result }}"
+
+          echo "Lint: $LINT_RESULT"
+          echo "Typecheck: $TYPECHECK_RESULT"
+          echo "Unit Tests: $UNIT_TESTS_RESULT"
+
+          # Success if all are success or skipped
+          if [[ "$LINT_RESULT" == "failure" ]] || \
+             [[ "$TYPECHECK_RESULT" == "failure" ]] || \
+             [[ "$UNIT_TESTS_RESULT" == "failure" ]]; then
+            echo "success=false" >> $GITHUB_OUTPUT
+            echo "::error::Basic CI failed"
+            exit 1
+          fi
+
+          echo "success=true" >> $GITHUB_OUTPUT
+          echo "All checks passed or skipped"

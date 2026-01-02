@@ -1,0 +1,46 @@
+name: Lint
+description: Run ESLint on TypeScript/JavaScript files
+
+inputs:
+  files:
+    description: 'Space-separated list of files to lint'
+    required: false
+    default: ''
+  working_directory:
+    description: 'Working directory for commands'
+    required: false
+    default: '.'
+  node_version:
+    description: 'Node.js version to use'
+    required: false
+    default: '22'
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node_version }}
+        cache: 'npm'
+        cache-dependency-path: ${{ inputs.working_directory }}/package-lock.json
+
+    - name: Install dependencies
+      shell: bash
+      working-directory: ${{ inputs.working_directory }}
+      run: npm ci
+
+    - name: Run ESLint
+      shell: bash
+      working-directory: ${{ inputs.working_directory }}
+      run: |
+        FILES="${{ inputs.files }}"
+        if [ -n "$FILES" ]; then
+          # Lint specific files
+          echo "Linting specific files: $FILES"
+          npx eslint $FILES --max-warnings=0
+        else
+          # Lint all files using project config
+          echo "Linting all files"
+          npm run lint
+        fi
