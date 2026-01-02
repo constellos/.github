@@ -1,0 +1,65 @@
+name: Unit Tests
+description: Run Vitest unit tests
+
+inputs:
+  files:
+    description: 'Space-separated list of test files to run'
+    required: false
+    default: ''
+  working_directory:
+    description: 'Working directory for commands'
+    required: false
+    default: '.'
+  node_version:
+    description: 'Node.js version to use'
+    required: false
+    default: '22'
+  coverage:
+    description: 'Enable coverage reporting'
+    required: false
+    default: 'false'
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node_version }}
+        cache: 'npm'
+        cache-dependency-path: ${{ inputs.working_directory }}/package-lock.json
+
+    - name: Install dependencies
+      shell: bash
+      working-directory: ${{ inputs.working_directory }}
+      run: npm ci
+
+    - name: Run Vitest
+      shell: bash
+      working-directory: ${{ inputs.working_directory }}
+      run: |
+        FILES="${{ inputs.files }}"
+        COVERAGE="${{ inputs.coverage }}"
+
+        COVERAGE_FLAG=""
+        if [ "$COVERAGE" = "true" ]; then
+          COVERAGE_FLAG="--coverage"
+        fi
+
+        if [ -n "$FILES" ]; then
+          # Run specific test files
+          echo "Running specific test files: $FILES"
+          npx vitest run $FILES $COVERAGE_FLAG
+        else
+          # Run all tests
+          echo "Running all unit tests"
+          npx vitest run $COVERAGE_FLAG
+        fi
+
+    - name: Upload coverage
+      if: inputs.coverage == 'true'
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-report
+        path: ${{ inputs.working_directory }}/coverage/
+        retention-days: 7
