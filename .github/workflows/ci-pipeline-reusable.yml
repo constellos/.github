@@ -259,7 +259,7 @@ jobs:
   code-quality:
     name: "Reviews / Code Quality"
     needs: [requirements]
-    if: always() && github.event_name == 'pull_request' && needs.requirements.result == 'success'
+    if: always() && github.event_name == 'pull_request' && needs.requirements.outputs.result == 'success'
     runs-on: ubuntu-latest
     outputs:
       passed: ${{ steps.review.outputs.passed }}
@@ -291,7 +291,7 @@ jobs:
   context:
     name: "Reviews / Context"
     needs: [requirements]
-    if: always() && github.event_name == 'pull_request' && needs.requirements.result == 'success'
+    if: always() && github.event_name == 'pull_request' && needs.requirements.outputs.result == 'success'
     runs-on: ubuntu-latest
     outputs:
       passed: ${{ steps.review.outputs.passed }}
@@ -323,7 +323,7 @@ jobs:
   visual:
     name: "Reviews / Visual"
     needs: [lint, requirements, e2e]
-    if: always() && github.event_name == 'pull_request' && needs.lint.outputs.has_app == 'true' && needs.requirements.result == 'success'
+    if: always() && github.event_name == 'pull_request' && needs.lint.outputs.has_app == 'true' && needs.requirements.outputs.result == 'success'
     runs-on: ubuntu-latest
     outputs:
       passed: ${{ steps.review.outputs.passed }}
@@ -359,7 +359,7 @@ jobs:
   ux:
     name: "Reviews / UX"
     needs: [lint, requirements, e2e]
-    if: always() && github.event_name == 'pull_request' && needs.lint.outputs.has_app == 'true' && needs.requirements.result == 'success'
+    if: always() && github.event_name == 'pull_request' && needs.lint.outputs.has_app == 'true' && needs.requirements.outputs.result == 'success'
     runs-on: ubuntu-latest
     outputs:
       passed: ${{ steps.review.outputs.passed }}
