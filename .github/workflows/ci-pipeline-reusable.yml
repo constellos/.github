@@ -134,11 +134,51 @@ jobs:
     name: "Tests / Unit (Vitest)"
     needs: [lint, types]
     runs-on: ubuntu-latest
+    outputs:
+      skipped: ${{ steps.check.outputs.skipped }}
+      skip_reason: ${{ steps.check.outputs.skip_reason }}
     steps:
       - uses: actions/checkout@v4
 
+      - name: Check vitest availability
+        id: check
+        run: |
+          SKIPPED="false"
+          SKIP_REASON=""
+
+          # Check if vitest is in any package.json (including workspaces)
+          HAS_VITEST=false
+          if grep -rq '"vitest"' package.json 2>/dev/null; then
+            HAS_VITEST=true
+          fi
+          # Also check workspace packages
+          for pkg in apps/*/package.json packages/*/package.json; do
+            [ -f "$pkg" ] && grep -q '"vitest"' "$pkg" 2>/dev/null && HAS_VITEST=true
+          done
+
+          if [ "$HAS_VITEST" = "false" ]; then
+            SKIPPED="true"
+            SKIP_REASON="Vitest not installed"
+            echo "skipped=$SKIPPED" >> $GITHUB_OUTPUT
+            echo "skip_reason=$SKIP_REASON" >> $GITHUB_OUTPUT
+            echo "::warning::Skipping unit tests: Vitest not installed"
+            exit 0
+          fi
+
+          # Check for test files
+          TEST_COUNT=$(find . -type f \( -name "*.test.ts" -o -name "*.test.tsx" -o -name "*.test.js" -o -name "*.test.jsx" -o -name "*.spec.ts" -o -name "*.spec.tsx" \) -not -path "*/node_modules/*" -not -path "*/e2e/*" -not -path "*/.next/*" 2>/dev/null | wc -l)
+          if [ "$TEST_COUNT" = "0" ]; then
+            SKIPPED="true"
+            SKIP_REASON="Vitest installed but no test files found"
+            echo "::warning::Skipping unit tests: No test files found"
+          fi
+
+          echo "skipped=$SKIPPED" >> $GITHUB_OUTPUT
+          echo "skip_reason=$SKIP_REASON" >> $GITHUB_OUTPUT
+
       - name: Detect package manager
         id: detect
+        if: steps.check.outputs.skipped != 'true'
         run: |
           PM="npm"
           [ -f "bun.lockb" ] || [ -f "bun.lock" ] && PM="bun"
@@ -147,14 +187,15 @@ jobs:
           echo "pm=$PM" >> $GITHUB_OUTPUT
 
       - uses: actions/setup-node@v4
-        if: steps.detect.outputs.pm != 'bun'
+        if: steps.check.outputs.skipped != 'true' && steps.detect.outputs.pm != 'bun'
         with:
           node-version: ${{ env.NODE_VERSION }}
 
       - uses: oven-sh/setup-bun@v2
-        if: steps.detect.outputs.pm == 'bun'
+        if: steps.check.outputs.skipped != 'true' && steps.detect.outputs.pm == 'bun'
 
       - name: Install dependencies
+        if: steps.check.outputs.skipped != 'true'
         run: |
           case "${{ steps.detect.outputs.pm }}" in
             bun) bun install --frozen-lockfile ;;
@@ -164,24 +205,67 @@ jobs:
           esac
 
       - name: Run unit tests
+        if: steps.check.outputs.skipped != 'true'
         run: |
           PM="${{ steps.detect.outputs.pm }}"
-          if [ -f "vitest.config.ts" ] || [ -f "vitest.config.js" ]; then
-            $PM run test -- --passWithNoTests || npx vitest run --passWithNoTests
-          else
-            echo "No vitest config found, skipping"
-          fi
+          $PM run test -- --passWithNoTests || npx vitest run --passWithNoTests
 
   e2e:
     name: "Tests / E2E (Playwright)"
     needs: [lint, unit]
     if: needs.lint.outputs.has_app == 'true'
     runs-on: ubuntu-latest
+    outputs:
+      skipped: ${{ steps.check.outputs.skipped }}
+      skip_reason: ${{ steps.check.outputs.skip_reason }}
     steps:
       - uses: actions/checkout@v4
 
+      - name: Check playwright availability
+        id: check
+        run: |
+          SKIPPED="false"
+          SKIP_REASON=""
+
+          # Check if playwright is in any package.json (including workspaces)
+          HAS_PLAYWRIGHT=false
+          if grep -q '"@playwright/test"' package.json 2>/dev/null; then
+            HAS_PLAYWRIGHT=true
+          fi
+          # Also check workspace packages
+          for pkg in apps/*/package.json packages/*/package.json; do
+            [ -f "$pkg" ] && grep -q '"@playwright/test"' "$pkg" 2>/dev/null && HAS_PLAYWRIGHT=true
+          done
+
+          if [ "$HAS_PLAYWRIGHT" = "false" ]; then
+            SKIPPED="true"
+            SKIP_REASON="Playwright not installed"
+            echo "skipped=$SKIPPED" >> $GITHUB_OUTPUT
+            echo "skip_reason=$SKIP_REASON" >> $GITHUB_OUTPUT
+            echo "::warning::Skipping E2E tests: Playwright not installed"
+            exit 0
+          fi
+
+          # Check for e2e test files
+          TEST_COUNT=$(find . -type f \( -name "*.spec.ts" -o -name "*.spec.tsx" -o -name "*.test.ts" \) \( -path "*/e2e/*" -o -path "*/tests/*" -o -path "*/__tests__/*" \) -not -path "*/node_modules/*" 2>/dev/null | wc -l)
+          # Also check for playwright config indicating tests location
+          if [ "$TEST_COUNT" = "0" ] && [ -f "playwright.config.ts" ]; then
+            # Try to find tests in configured test directory
+            TEST_COUNT=$(find . -type f -name "*.spec.ts" -not -path "*/node_modules/*" 2>/dev/null | wc -l)
+          fi
+
+          if [ "$TEST_COUNT" = "0" ]; then
+            SKIPPED="true"
+            SKIP_REASON="Playwright installed but no E2E test files found"
+            echo "::warning::Skipping E2E tests: No test files found"
+          fi
+
+          echo "skipped=$SKIPPED" >> $GITHUB_OUTPUT
+          echo "skip_reason=$SKIP_REASON" >> $GITHUB_OUTPUT
+
       - name: Detect package manager
         id: detect
+        if: steps.check.outputs.skipped != 'true'
         run: |
           PM="npm"
           [ -f "bun.lockb" ] || [ -f "bun.lock" ] && PM="bun"
@@ -190,14 +274,15 @@ jobs:
           echo "pm=$PM" >> $GITHUB_OUTPUT
 
       - uses: actions/setup-node@v4
-        if: steps.detect.outputs.pm != 'bun'
+        if: steps.check.outputs.skipped != 'true' && steps.detect.outputs.pm != 'bun'
         with:
           node-version: ${{ env.NODE_VERSION }}
 
       - uses: oven-sh/setup-bun@v2
-        if: steps.detect.outputs.pm == 'bun'
+        if: steps.check.outputs.skipped != 'true' && steps.detect.outputs.pm == 'bun'
 
       - name: Install dependencies
+        if: steps.check.outputs.skipped != 'true'
         run: |
           case "${{ steps.detect.outputs.pm }}" in
             bun) bun install --frozen-lockfile ;;
@@ -206,15 +291,18 @@ jobs:
             *) npm ci ;;
           esac
 
-      - run: npx playwright install chromium --with-deps
+      - name: Install Playwright browsers
+        if: steps.check.outputs.skipped != 'true'
+        run: npx playwright install chromium --with-deps
 
       - name: Run E2E tests
+        if: steps.check.outputs.skipped != 'true'
         run: |
           mkdir -p .claude/screenshots
           npx playwright test --project=chromium
 
       - uses: actions/upload-artifact@v4
-        if: always()
+        if: always() && steps.check.outputs.skipped != 'true'
         with:
           name: playwright-screenshots-${{ github.sha }}
           path: .claude/screenshots/
