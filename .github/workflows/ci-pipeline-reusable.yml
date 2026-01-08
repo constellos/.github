@@ -10,7 +10,7 @@ on:
       actions_version:
         description: 'claude-code-actions version/ref'
         type: string
-        default: 'v1.0.0'
+        default: 'v1.1.0'
       skip_reviews:
         description: 'Skip AI reviews (for testing)'
         type: boolean
