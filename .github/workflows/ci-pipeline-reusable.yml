@@ -10,7 +10,7 @@ on:
       actions_version:
         description: 'claude-code-actions version/ref'
         type: string
-        default: 'v1.1.0'
+        default: 'v1.1.1'
       skip_reviews:
         description: 'Skip AI reviews (for testing)'
         type: boolean
@@ -30,7 +30,7 @@ concurrency:
 
 env:
   NODE_VERSION: ${{ inputs.node_version }}
-  ACTIONS_VERSION: v1.1.0
+  ACTIONS_VERSION: v1.1.1
 
 jobs:
   # ============================================
@@ -324,7 +324,7 @@ jobs:
 
       - name: Run requirements review
         id: review
-        uses: constellos/claude-code-actions/.github/actions/requirements-reviewer@v1.1.0
+        uses: constellos/claude-code-actions/.github/actions/requirements-reviewer@v1.1.1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           pr_number: ${{ github.event.pull_request.number }}
@@ -333,7 +333,7 @@ jobs:
 
       - name: Update comment
         if: always()
-        uses: constellos/claude-code-actions/.github/actions/review-comment@v1.1.0
+        uses: constellos/claude-code-actions/.github/actions/review-comment@v1.1.1
         with:
           review_name: Requirements
           passed: ${{ steps.review.outputs.passed }}
@@ -357,7 +357,7 @@ jobs:
 
       - name: Run code quality review
         id: review
-        uses: constellos/claude-code-actions/.github/actions/code-quality-reviewer@v1.1.0
+        uses: constellos/claude-code-actions/.github/actions/code-quality-reviewer@v1.1.1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           pr_number: ${{ github.event.pull_request.number }}
@@ -365,7 +365,7 @@ jobs:
 
       - name: Update comment
         if: always()
-        uses: constellos/claude-code-actions/.github/actions/review-comment@v1.1.0
+        uses: constellos/claude-code-actions/.github/actions/review-comment@v1.1.1
         with:
           review_name: Code Quality
           passed: ${{ steps.review.outputs.passed }}
@@ -389,7 +389,7 @@ jobs:
 
       - name: Run context review
         id: review
-        uses: constellos/claude-code-actions/.github/actions/context-reviewer@v1.1.0
+        uses: constellos/claude-code-actions/.github/actions/context-reviewer@v1.1.1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           pr_number: ${{ github.event.pull_request.number }}
@@ -397,7 +397,7 @@ jobs:
 
       - name: Update comment
         if: always()
-        uses: constellos/claude-code-actions/.github/actions/review-comment@v1.1.0
+        uses: constellos/claude-code-actions/.github/actions/review-comment@v1.1.1
         with:
           review_name: Context
           passed: ${{ steps.review.outputs.passed }}
@@ -425,7 +425,7 @@ jobs:
 
       - name: Run visual review
         id: review
-        uses: constellos/claude-code-actions/.github/actions/visual-reviewer@v1.1.0
+        uses: constellos/claude-code-actions/.github/actions/visual-reviewer@v1.1.1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           pr_number: ${{ github.event.pull_request.number }}
@@ -433,7 +433,7 @@ jobs:
 
       - name: Update comment
         if: always()
-        uses: constellos/claude-code-actions/.github/actions/review-comment@v1.1.0
+        uses: constellos/claude-code-actions/.github/actions/review-comment@v1.1.1
         with:
           review_name: Visual
           passed: ${{ steps.review.outputs.passed }}
@@ -457,7 +457,7 @@ jobs:
 
       - name: Run UX review
         id: review
-        uses: constellos/claude-code-actions/.github/actions/ux-reviewer@v1.1.0
+        uses: constellos/claude-code-actions/.github/actions/ux-reviewer@v1.1.1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           pr_number: ${{ github.event.pull_request.number }}
@@ -465,7 +465,7 @@ jobs:
 
       - name: Update comment
         if: always()
-        uses: constellos/claude-code-actions/.github/actions/review-comment@v1.1.0
+        uses: constellos/claude-code-actions/.github/actions/review-comment@v1.1.1
         with:
           review_name: UX
           passed: ${{ steps.review.outputs.passed }}
