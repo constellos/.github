@@ -326,7 +326,7 @@ jobs:
 
       - name: Run requirements review
         id: review
-        uses: constellos/claude-code-actions/.github/actions/requirements-reviewer@${{ env.ACTIONS_VERSION }}
+        uses: constellos/claude-code-actions/.github/actions/requirements-reviewer@${{ inputs.actions_version }}
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           pr_number: ${{ github.event.pull_request.number }}
@@ -335,7 +335,7 @@ jobs:
 
       - name: Update comment
         if: always()
-        uses: constellos/claude-code-actions/.github/actions/review-comment@${{ env.ACTIONS_VERSION }}
+        uses: constellos/claude-code-actions/.github/actions/review-comment@${{ inputs.actions_version }}
         with:
           review_name: Requirements
           passed: ${{ steps.review.outputs.passed }}
@@ -359,7 +359,7 @@ jobs:
 
       - name: Run code quality review
         id: review
-        uses: constellos/claude-code-actions/.github/actions/code-quality-reviewer@${{ env.ACTIONS_VERSION }}
+        uses: constellos/claude-code-actions/.github/actions/code-quality-reviewer@${{ inputs.actions_version }}
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           pr_number: ${{ github.event.pull_request.number }}
@@ -367,7 +367,7 @@ jobs:
 
       - name: Update comment
         if: always()
-        uses: constellos/claude-code-actions/.github/actions/review-comment@${{ env.ACTIONS_VERSION }}
+        uses: constellos/claude-code-actions/.github/actions/review-comment@${{ inputs.actions_version }}
         with:
           review_name: Code Quality
           passed: ${{ steps.review.outputs.passed }}
@@ -391,7 +391,7 @@ jobs:
 
       - name: Run context review
         id: review
-        uses: constellos/claude-code-actions/.github/actions/context-reviewer@${{ env.ACTIONS_VERSION }}
+        uses: constellos/claude-code-actions/.github/actions/context-reviewer@${{ inputs.actions_version }}
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           pr_number: ${{ github.event.pull_request.number }}
@@ -399,7 +399,7 @@ jobs:
 
       - name: Update comment
         if: always()
-        uses: constellos/claude-code-actions/.github/actions/review-comment@${{ env.ACTIONS_VERSION }}
+        uses: constellos/claude-code-actions/.github/actions/review-comment@${{ inputs.actions_version }}
         with:
           review_name: Context
           passed: ${{ steps.review.outputs.passed }}
@@ -427,7 +427,7 @@ jobs:
 
       - name: Run visual review
         id: review
-        uses: constellos/claude-code-actions/.github/actions/visual-reviewer@${{ env.ACTIONS_VERSION }}
+        uses: constellos/claude-code-actions/.github/actions/visual-reviewer@${{ inputs.actions_version }}
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           pr_number: ${{ github.event.pull_request.number }}
@@ -435,7 +435,7 @@ jobs:
 
       - name: Update comment
         if: always()
-        uses: constellos/claude-code-actions/.github/actions/review-comment@${{ env.ACTIONS_VERSION }}
+        uses: constellos/claude-code-actions/.github/actions/review-comment@${{ inputs.actions_version }}
         with:
           review_name: Visual
           passed: ${{ steps.review.outputs.passed }}
@@ -459,7 +459,7 @@ jobs:
 
       - name: Run UX review
         id: review
-        uses: constellos/claude-code-actions/.github/actions/ux-reviewer@${{ env.ACTIONS_VERSION }}
+        uses: constellos/claude-code-actions/.github/actions/ux-reviewer@${{ inputs.actions_version }}
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           pr_number: ${{ github.event.pull_request.number }}
@@ -467,7 +467,7 @@ jobs:
 
       - name: Update comment
         if: always()
-        uses: constellos/claude-code-actions/.github/actions/review-comment@${{ env.ACTIONS_VERSION }}
+        uses: constellos/claude-code-actions/.github/actions/review-comment@${{ inputs.actions_version }}
         with:
           review_name: UX
           passed: ${{ steps.review.outputs.passed }}
