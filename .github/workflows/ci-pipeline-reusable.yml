@@ -363,6 +363,15 @@ jobs:
           branch: ${{ github.head_ref }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Debug token source
+        if: always()
+        run: |
+          if [ -n "${{ needs.setup.outputs.app_token }}" ]; then
+            echo "Using app token from setup job"
+          else
+            echo "App token empty, falling back to GITHUB_TOKEN"
+          fi
+
       - name: Update comment
         if: always()
         uses: constellos/claude-code-actions/.github/actions/review-comment@v1.1.2
