@@ -44,7 +44,7 @@ jobs:
     name: "Setup"
     runs-on: ubuntu-latest
     outputs:
-      app_token: ${{ steps.app-token.outputs.token || '' }}
+      app_token: ${{ steps.app-token.outputs.token }}
       use_app_token: ${{ steps.check.outputs.use_app_token }}
     steps:
       - name: Check if app token is configured
