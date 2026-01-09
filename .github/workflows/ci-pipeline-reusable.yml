@@ -24,13 +24,9 @@ permissions:
   pull-requests: write
   issues: read
 
-concurrency:
-  group: ci-${{ github.head_ref || github.ref_name }}
-  cancel-in-progress: true
-
 jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: echo "lint step with ${{ inputs.node_version }} and ${{ inputs.actions_version }}"
+      - run: echo "lint step"
