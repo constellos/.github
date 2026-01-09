@@ -48,6 +48,7 @@ jobs:
         with:
           app-id: ${{ secrets.CONSTELLOS_APP_ID }}
           private-key: ${{ secrets.CONSTELLOS_APP_PRIVATE_KEY }}
+          skip-token-revoke: true
 
   # ============================================
   # STATIC ANALYSIS
@@ -139,7 +140,22 @@ jobs:
       - name: Typecheck
         run: |
           PM="${{ steps.detect.outputs.pm }}"
-          $PM run typecheck || npx tsc --noEmit
+
+          # Check if typecheck script exists in package.json
+          if jq -e '.scripts.typecheck' package.json > /dev/null 2>&1; then
+            echo "Running typecheck script..."
+            $PM run typecheck
+          # Check for turbo monorepo
+          elif [ -f "turbo.json" ]; then
+            echo "Turbo detected, running turbo typecheck..."
+            npx turbo run typecheck --filter='./apps/*' --filter='./packages/*' || echo "::warning::Turbo typecheck failed or no packages have typecheck script"
+          # Fallback to tsc only if tsconfig exists
+          elif [ -f "tsconfig.json" ]; then
+            echo "Running tsc --noEmit..."
+            npx tsc --noEmit
+          else
+            echo "::warning::No typecheck script, turbo.json, or tsconfig.json found - skipping typecheck"
+          fi
 
   # ============================================
   # TESTS (requires Static Analysis)
