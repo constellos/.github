@@ -87,5 +87,3 @@ jobs:
         run: |
           PM="${{ steps.detect.outputs.pm }}"
           $PM run lint
-
-  types:
