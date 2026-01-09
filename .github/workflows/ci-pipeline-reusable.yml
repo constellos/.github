@@ -20,6 +20,8 @@ on:
         required: true
       CONSTELLOS_APP_PRIVATE_KEY:
         required: false
+      CONSTELLOS_APP_ID:
+        required: false
 
 permissions:
   contents: read
@@ -48,11 +50,11 @@ jobs:
       - name: Check if app token is configured
         id: check
         run: |
-          if [ -n "${{ secrets.CONSTELLOS_APP_PRIVATE_KEY }}" ] && [ -n "${{ vars.CONSTELLOS_APP_ID }}" ]; then
+          if [ -n "${{ secrets.CONSTELLOS_APP_PRIVATE_KEY }}" ] && [ -n "${{ secrets.CONSTELLOS_APP_ID }}" ]; then
             echo "use_app_token=true" >> $GITHUB_OUTPUT
           else
             echo "use_app_token=false" >> $GITHUB_OUTPUT
-            echo "::notice::GitHub App not configured. Comments will appear as github-actions[bot]. Set CONSTELLOS_APP_ID and CONSTELLOS_APP_PRIVATE_KEY for custom bot identity."
+            echo "::notice::GitHub App not configured. Comments will appear as github-actions[bot]. Set CONSTELLOS_APP_ID and CONSTELLOS_APP_PRIVATE_KEY org secrets for custom bot identity."
           fi
 
       - name: Generate App Token
@@ -60,7 +62,7 @@ jobs:
         if: steps.check.outputs.use_app_token == 'true'
         uses: actions/create-github-app-token@v2
         with:
-          app-id: ${{ vars.CONSTELLOS_APP_ID }}
+          app-id: ${{ secrets.CONSTELLOS_APP_ID }}
           private-key: ${{ secrets.CONSTELLOS_APP_PRIVATE_KEY }}
 
   # ============================================
