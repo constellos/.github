@@ -18,6 +18,8 @@ on:
     secrets:
       CLAUDE_CODE_OAUTH_TOKEN:
         required: true
+      CONSTELLOS_APP_PRIVATE_KEY:
+        required: false
 
 permissions:
   contents: read
@@ -33,6 +35,34 @@ env:
   ACTIONS_VERSION: v1.1.2
 
 jobs:
+  # ============================================
+  # SETUP (generates app token for custom bot identity)
+  # ============================================
+  setup:
+    name: "Setup"
+    runs-on: ubuntu-latest
+    outputs:
+      app_token: ${{ steps.app-token.outputs.token || '' }}
+      use_app_token: ${{ steps.check.outputs.use_app_token }}
+    steps:
+      - name: Check if app token is configured
+        id: check
+        run: |
+          if [ -n "${{ secrets.CONSTELLOS_APP_PRIVATE_KEY }}" ] && [ -n "${{ vars.CONSTELLOS_APP_ID }}" ]; then
+            echo "use_app_token=true" >> $GITHUB_OUTPUT
+          else
+            echo "use_app_token=false" >> $GITHUB_OUTPUT
+            echo "::notice::GitHub App not configured. Comments will appear as github-actions[bot]. Set CONSTELLOS_APP_ID and CONSTELLOS_APP_PRIVATE_KEY for custom bot identity."
+          fi
+
+      - name: Generate App Token
+        id: app-token
+        if: steps.check.outputs.use_app_token == 'true'
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.CONSTELLOS_APP_ID }}
+          private-key: ${{ secrets.CONSTELLOS_APP_PRIVATE_KEY }}
+
   # ============================================
   # STATIC ANALYSIS
   # ============================================
@@ -311,7 +341,7 @@ jobs:
   # ============================================
   requirements:
     name: "Reviews / Requirements"
-    needs: [unit, e2e]
+    needs: [unit, e2e, setup]
     if: github.event_name == 'pull_request' && !failure() && !cancelled() && inputs.skip_reviews != true
     runs-on: ubuntu-latest
     outputs:
@@ -340,11 +370,11 @@ jobs:
           result_json: ${{ steps.review.outputs.result }}
           pr_number: ${{ github.event.pull_request.number }}
           sha: ${{ github.sha }}
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_token: ${{ needs.setup.outputs.app_token || secrets.GITHUB_TOKEN }}
 
   code-quality:
     name: "Reviews / Code Quality"
-    needs: [requirements]
+    needs: [requirements, setup]
     if: always() && github.event_name == 'pull_request' && needs.requirements.outputs.passed == 'true'
     runs-on: ubuntu-latest
     outputs:
@@ -372,11 +402,11 @@ jobs:
           result_json: ${{ steps.review.outputs.result }}
           pr_number: ${{ github.event.pull_request.number }}
           sha: ${{ github.sha }}
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_token: ${{ needs.setup.outputs.app_token || secrets.GITHUB_TOKEN }}
 
   context:
     name: "Reviews / Context"
-    needs: [requirements]
+    needs: [requirements, setup]
     if: always() && github.event_name == 'pull_request' && needs.requirements.outputs.passed == 'true'
     runs-on: ubuntu-latest
     outputs:
@@ -404,11 +434,11 @@ jobs:
           result_json: ${{ steps.review.outputs.result }}
           pr_number: ${{ github.event.pull_request.number }}
           sha: ${{ github.sha }}
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_token: ${{ needs.setup.outputs.app_token || secrets.GITHUB_TOKEN }}
 
   visual:
     name: "Reviews / Visual"
-    needs: [lint, requirements, e2e]
+    needs: [lint, requirements, e2e, setup]
     if: always() && github.event_name == 'pull_request' && needs.lint.outputs.has_app == 'true' && needs.requirements.outputs.passed == 'true'
     runs-on: ubuntu-latest
     outputs:
@@ -440,11 +470,11 @@ jobs:
           result_json: ${{ steps.review.outputs.result }}
           pr_number: ${{ github.event.pull_request.number }}
           sha: ${{ github.sha }}
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_token: ${{ needs.setup.outputs.app_token || secrets.GITHUB_TOKEN }}
 
   ux:
     name: "Reviews / UX"
-    needs: [lint, requirements, e2e]
+    needs: [lint, requirements, e2e, setup]
     if: always() && github.event_name == 'pull_request' && needs.lint.outputs.has_app == 'true' && needs.requirements.outputs.passed == 'true'
     runs-on: ubuntu-latest
     outputs:
@@ -472,4 +502,4 @@ jobs:
           result_json: ${{ steps.review.outputs.result }}
           pr_number: ${{ github.event.pull_request.number }}
           sha: ${{ github.sha }}
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_token: ${{ needs.setup.outputs.app_token || secrets.GITHUB_TOKEN }}
