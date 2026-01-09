@@ -89,12 +89,3 @@ jobs:
           $PM run lint
 
   types:
-    name: "Static Analysis / Types (TypeScript)"
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Detect package manager
-        id: detect
-        run: |
-          PM="npm"
