@@ -1,10 +1,100 @@
-name: Test Reusable
+name: Reusable CI Pipeline
 
 on:
   workflow_call:
+    inputs:
+      node_version:
+        description: 'Node.js version'
+        type: string
+        default: '22'
+      actions_version:
+        description: 'claude-code-actions version/ref'
+        type: string
+        default: 'v1.1.2'
+      skip_reviews:
+        description: 'Skip AI reviews (for testing)'
+        type: boolean
+        default: false
+    secrets:
+      CLAUDE_CODE_OAUTH_TOKEN:
+        required: true
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: read
+
+concurrency:
+  group: ci-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: ${{ inputs.node_version }}
+  ACTIONS_VERSION: v1.1.2
 
 jobs:
-  test:
+  # ============================================
+  # STATIC ANALYSIS
+  # ============================================
+  lint:
+    name: "Static Analysis / Lint (ESLint)"
+    runs-on: ubuntu-latest
+    outputs:
+      has_app: ${{ steps.detect.outputs.has_app }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Detect environment
+        id: detect
+        run: |
+          # Detect package manager
+          PM="npm"
+          [ -f "bun.lockb" ] || [ -f "bun.lock" ] && PM="bun"
+          [ -f "pnpm-lock.yaml" ] && PM="pnpm"
+          [ -f "yarn.lock" ] && PM="yarn"
+          echo "pm=$PM" >> $GITHUB_OUTPUT
+
+          # Detect app
+          HAS_APP=false
+          [ -f "next.config.js" ] && HAS_APP=true
+          [ -f "next.config.mjs" ] && HAS_APP=true
+          [ -f "next.config.ts" ] && HAS_APP=true
+          [ -f "vite.config.ts" ] && HAS_APP=true
+          [ -f "vite.config.js" ] && HAS_APP=true
+          [ -f "playwright.config.ts" ] && HAS_APP=true
+          ls apps/*/package.json >/dev/null 2>&1 && HAS_APP=true
+          [ -d "src/app" ] && HAS_APP=true
+          echo "has_app=$HAS_APP" >> $GITHUB_OUTPUT
+
+      - uses: actions/setup-node@v4
+        if: steps.detect.outputs.pm != 'bun'
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - uses: oven-sh/setup-bun@v2
+        if: steps.detect.outputs.pm == 'bun'
+
+      - name: Install dependencies
+        run: |
+          case "${{ steps.detect.outputs.pm }}" in
+            bun) bun install --frozen-lockfile ;;
+            pnpm) corepack enable && pnpm install --frozen-lockfile ;;
+            yarn) yarn --frozen-lockfile ;;
+            *) npm ci ;;
+          esac
+
+      - name: Lint
+        run: |
+          PM="${{ steps.detect.outputs.pm }}"
+          $PM run lint
+
+  types:
+    name: "Static Analysis / Types (TypeScript)"
     runs-on: ubuntu-latest
     steps:
-      - run: echo "Hello from reusable workflow"
+      - uses: actions/checkout@v4
+
+      - name: Detect package manager
+        id: detect
+        run: |
+          PM="npm"
