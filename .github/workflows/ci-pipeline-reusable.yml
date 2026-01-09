@@ -4,41 +4,15 @@ on:
   workflow_call:
     inputs:
       node_version:
-        description: 'Node.js version'
         type: string
         default: '22'
-      actions_version:
-        description: 'claude-code-actions version/ref'
-        type: string
-        default: 'v1.1.2'
-      skip_reviews:
-        description: 'Skip AI reviews (for testing)'
-        type: boolean
-        default: false
     secrets:
       CLAUDE_CODE_OAUTH_TOKEN:
         required: true
 
-permissions:
-  contents: read
-  pull-requests: write
-  issues: read
-
-concurrency:
-  group: ci-${{ github.head_ref || github.ref_name }}
-  cancel-in-progress: true
-
 jobs:
   lint:
-    name: "Lint"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - run: echo "lint step"
-
-  types:
-    name: "Types"
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: echo "types step"
