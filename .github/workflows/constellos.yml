@@ -1,0 +1,340 @@
+name: Constellos
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'Pull request number'
+        required: true
+        type: string
+      branch:
+        description: 'Branch name'
+        required: true
+        type: string
+      sha:
+        description: 'Commit SHA'
+        required: true
+        type: string
+      triggered_by:
+        description: 'Who triggered this workflow'
+        required: false
+        type: string
+        default: 'manual'
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+  actions: read
+  checks: write
+
+jobs:
+  # Map inputs to outputs for consistency with other jobs
+  context:
+    name: Get PR Context
+    runs-on: ubuntu-latest
+    outputs:
+      pr_number: ${{ github.event.inputs.pr_number }}
+      sha: ${{ github.event.inputs.sha }}
+      branch: ${{ github.event.inputs.branch }}
+      has_app: 'true'
+    steps:
+      - name: Log context
+        run: |
+          echo "PR: ${{ github.event.inputs.pr_number }}"
+          echo "Branch: ${{ github.event.inputs.branch }}"
+          echo "SHA: ${{ github.event.inputs.sha }}"
+          echo "Triggered by: ${{ github.event.inputs.triggered_by }}"
+
+  requirements:
+    name: Requirements Review
+    needs: [context]
+    runs-on: ubuntu-latest
+    outputs:
+      passed: ${{ steps.review.outputs.passed }}
+      result: ${{ steps.review.outputs.result }}
+      checks_passed: ${{ steps.review.outputs.checks_passed }}
+      checks_failed: ${{ steps.review.outputs.checks_failed }}
+      checks_skipped: ${{ steps.review.outputs.checks_skipped }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.context.outputs.sha }}
+          fetch-depth: 0
+
+      - name: Generate App Token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        continue-on-error: true
+        with:
+          app-id: ${{ secrets.CONSTELLOS_APP_ID }}
+          private-key: ${{ secrets.CONSTELLOS_APP_PRIVATE_KEY }}
+          skip-token-revoke: true
+
+      - name: Run requirements review
+        id: review
+        uses: constellos/constellos-actions/.github/actions/requirements-reviewer@main
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          pr_number: ${{ needs.context.outputs.pr_number }}
+          branch: ${{ needs.context.outputs.branch }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update comment
+        if: always()
+        uses: constellos/constellos-actions/.github/actions/review-comment@main
+        with:
+          review_name: Requirements
+          passed: ${{ steps.review.outputs.passed }}
+          result_json: ${{ steps.review.outputs.result }}
+          checks_passed: ${{ steps.review.outputs.checks_passed }}
+          checks_failed: ${{ steps.review.outputs.checks_failed }}
+          checks_skipped: ${{ steps.review.outputs.checks_skipped }}
+          pr_number: ${{ needs.context.outputs.pr_number }}
+          sha: ${{ needs.context.outputs.sha }}
+          github_token: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
+
+  code-quality:
+    name: Code Quality Review
+    needs: [context, requirements]
+    if: always() && needs.requirements.outputs.passed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.context.outputs.sha }}
+          fetch-depth: 0
+
+      - name: Generate App Token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        continue-on-error: true
+        with:
+          app-id: ${{ secrets.CONSTELLOS_APP_ID }}
+          private-key: ${{ secrets.CONSTELLOS_APP_PRIVATE_KEY }}
+          skip-token-revoke: true
+
+      - name: Run code quality review
+        id: review
+        uses: constellos/constellos-actions/.github/actions/code-quality-reviewer@main
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          pr_number: ${{ needs.context.outputs.pr_number }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update comment
+        if: always()
+        uses: constellos/constellos-actions/.github/actions/review-comment@main
+        with:
+          review_name: Code Quality
+          passed: ${{ steps.review.outputs.passed }}
+          result_json: ${{ steps.review.outputs.result }}
+          checks_passed: ${{ steps.review.outputs.checks_passed }}
+          checks_failed: ${{ steps.review.outputs.checks_failed }}
+          checks_skipped: ${{ steps.review.outputs.checks_skipped }}
+          pr_number: ${{ needs.context.outputs.pr_number }}
+          sha: ${{ needs.context.outputs.sha }}
+          github_token: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
+
+  context-review:
+    name: Context Review
+    needs: [context, requirements]
+    if: always() && needs.requirements.outputs.passed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.context.outputs.sha }}
+          fetch-depth: 0
+
+      - name: Generate App Token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        continue-on-error: true
+        with:
+          app-id: ${{ secrets.CONSTELLOS_APP_ID }}
+          private-key: ${{ secrets.CONSTELLOS_APP_PRIVATE_KEY }}
+          skip-token-revoke: true
+
+      - name: Run context review
+        id: review
+        uses: constellos/constellos-actions/.github/actions/context-reviewer@main
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          pr_number: ${{ needs.context.outputs.pr_number }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update comment
+        if: always()
+        uses: constellos/constellos-actions/.github/actions/review-comment@main
+        with:
+          review_name: Context
+          passed: ${{ steps.review.outputs.passed }}
+          result_json: ${{ steps.review.outputs.result }}
+          checks_passed: ${{ steps.review.outputs.checks_passed }}
+          checks_failed: ${{ steps.review.outputs.checks_failed }}
+          checks_skipped: ${{ steps.review.outputs.checks_skipped }}
+          pr_number: ${{ needs.context.outputs.pr_number }}
+          sha: ${{ needs.context.outputs.sha }}
+          github_token: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
+
+  visual:
+    name: Visual Review
+    needs: [context, requirements]
+    if: always() && needs.requirements.outputs.passed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.context.outputs.sha }}
+
+      - name: Generate App Token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        continue-on-error: true
+        with:
+          app-id: ${{ secrets.CONSTELLOS_APP_ID }}
+          private-key: ${{ secrets.CONSTELLOS_APP_PRIVATE_KEY }}
+          skip-token-revoke: true
+
+      - name: Run visual review
+        id: review
+        uses: constellos/constellos-actions/.github/actions/visual-reviewer@main
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          pr_number: ${{ needs.context.outputs.pr_number }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update comment
+        if: always()
+        uses: constellos/constellos-actions/.github/actions/review-comment@main
+        with:
+          review_name: Visual
+          passed: ${{ steps.review.outputs.passed }}
+          result_json: ${{ steps.review.outputs.result }}
+          checks_passed: ${{ steps.review.outputs.checks_passed }}
+          checks_failed: ${{ steps.review.outputs.checks_failed }}
+          checks_skipped: ${{ steps.review.outputs.checks_skipped }}
+          pr_number: ${{ needs.context.outputs.pr_number }}
+          sha: ${{ needs.context.outputs.sha }}
+          github_token: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
+
+  ux:
+    name: UX Review
+    needs: [context, requirements]
+    if: always() && needs.requirements.outputs.passed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.context.outputs.sha }}
+          fetch-depth: 0
+
+      - name: Generate App Token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        continue-on-error: true
+        with:
+          app-id: ${{ secrets.CONSTELLOS_APP_ID }}
+          private-key: ${{ secrets.CONSTELLOS_APP_PRIVATE_KEY }}
+          skip-token-revoke: true
+
+      - name: Run UX review
+        id: review
+        uses: constellos/constellos-actions/.github/actions/ux-reviewer@main
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          pr_number: ${{ needs.context.outputs.pr_number }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update comment
+        if: always()
+        uses: constellos/constellos-actions/.github/actions/review-comment@main
+        with:
+          review_name: UX
+          passed: ${{ steps.review.outputs.passed }}
+          result_json: ${{ steps.review.outputs.result }}
+          checks_passed: ${{ steps.review.outputs.checks_passed }}
+          checks_failed: ${{ steps.review.outputs.checks_failed }}
+          checks_skipped: ${{ steps.review.outputs.checks_skipped }}
+          pr_number: ${{ needs.context.outputs.pr_number }}
+          sha: ${{ needs.context.outputs.sha }}
+          github_token: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
+
+  check-run:
+    name: Create Check Run
+    needs: [context, requirements, code-quality, context-review, visual, ux]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate App Token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        continue-on-error: true
+        with:
+          app-id: ${{ secrets.CONSTELLOS_APP_ID }}
+          private-key: ${{ secrets.CONSTELLOS_APP_PRIVATE_KEY }}
+          skip-token-revoke: true
+
+      - name: Determine conclusion
+        id: conclusion
+        run: |
+          # Check if any reviews failed
+          REQ_PASSED="${{ needs.requirements.outputs.passed }}"
+          CQ_RESULT="${{ needs.code-quality.result }}"
+          CTX_RESULT="${{ needs.context-review.result }}"
+          VIS_RESULT="${{ needs.visual.result }}"
+          UX_RESULT="${{ needs.ux.result }}"
+
+          # Default to success
+          CONCLUSION="success"
+
+          # Check each review - failure if any explicitly failed
+          if [ "$REQ_PASSED" = "false" ]; then
+            CONCLUSION="failure"
+          fi
+          if [ "$CQ_RESULT" = "failure" ]; then
+            CONCLUSION="failure"
+          fi
+          if [ "$CTX_RESULT" = "failure" ]; then
+            CONCLUSION="failure"
+          fi
+          if [ "$VIS_RESULT" = "failure" ]; then
+            CONCLUSION="failure"
+          fi
+          if [ "$UX_RESULT" = "failure" ]; then
+            CONCLUSION="failure"
+          fi
+
+          echo "conclusion=$CONCLUSION" >> $GITHUB_OUTPUT
+
+      - name: Build summary
+        id: summary
+        run: |
+          # Build emoji indicators
+          REQ="${{ needs.requirements.outputs.passed == 'true' && 'Passed' || (needs.requirements.result == 'skipped' && 'Skipped' || 'Failed') }}"
+          CQ="${{ needs.code-quality.result == 'success' && 'Passed' || (needs.code-quality.result == 'skipped' && 'Skipped' || 'Failed') }}"
+          CTX="${{ needs.context-review.result == 'success' && 'Passed' || (needs.context-review.result == 'skipped' && 'Skipped' || 'Failed') }}"
+          VIS="${{ needs.visual.result == 'success' && 'Passed' || (needs.visual.result == 'skipped' && 'Skipped' || 'Failed') }}"
+          UX="${{ needs.ux.result == 'success' && 'Passed' || (needs.ux.result == 'skipped' && 'Skipped' || 'Failed') }}"
+
+          SUMMARY="| Review | Status |
+          |--------|--------|
+          | Requirements | $REQ |
+          | Code Quality | $CQ |
+          | Context | $CTX |
+          | Visual | $VIS |
+          | UX | $UX |"
+
+          echo "summary<<EOF" >> $GITHUB_OUTPUT
+          echo "$SUMMARY" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create check run
+        if: steps.app-token.outputs.token != ''
+        uses: constellos/constellos-actions/.github/actions/create-check-run@main
+        with:
+          sha: ${{ needs.context.outputs.sha }}
+          conclusion: ${{ steps.conclusion.outputs.conclusion }}
+          summary: ${{ steps.summary.outputs.summary }}
+          github_token: ${{ steps.app-token.outputs.token }}
