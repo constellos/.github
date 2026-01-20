@@ -356,11 +356,14 @@ jobs:
 
       - name: Update comment
         if: always()
-        uses: constellos/claude-code-actions/.github/actions/review-comment@v1.1.2
+        uses: constellos/claude-code-actions/.github/actions/review-comment@v1.1.3
         with:
           review_name: Requirements
           passed: ${{ steps.review.outputs.passed }}
           result_json: ${{ steps.review.outputs.result }}
+          checks_passed: ${{ steps.review.outputs.checks_passed }}
+          checks_failed: ${{ steps.review.outputs.checks_failed }}
+          checks_skipped: ${{ steps.review.outputs.checks_skipped }}
           pr_number: ${{ github.event.pull_request.number }}
           sha: ${{ github.sha }}
           github_token: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
@@ -397,11 +400,14 @@ jobs:
 
       - name: Update comment
         if: always()
-        uses: constellos/claude-code-actions/.github/actions/review-comment@v1.1.2
+        uses: constellos/claude-code-actions/.github/actions/review-comment@v1.1.3
         with:
           review_name: Code Quality
           passed: ${{ steps.review.outputs.passed }}
           result_json: ${{ steps.review.outputs.result }}
+          checks_passed: ${{ steps.review.outputs.checks_passed }}
+          checks_failed: ${{ steps.review.outputs.checks_failed }}
+          checks_skipped: ${{ steps.review.outputs.checks_skipped }}
           pr_number: ${{ github.event.pull_request.number }}
           sha: ${{ github.sha }}
           github_token: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
@@ -438,11 +444,14 @@ jobs:
 
       - name: Update comment
         if: always()
-        uses: constellos/claude-code-actions/.github/actions/review-comment@v1.1.2
+        uses: constellos/claude-code-actions/.github/actions/review-comment@v1.1.3
         with:
           review_name: Context
           passed: ${{ steps.review.outputs.passed }}
           result_json: ${{ steps.review.outputs.result }}
+          checks_passed: ${{ steps.review.outputs.checks_passed }}
+          checks_failed: ${{ steps.review.outputs.checks_failed }}
+          checks_skipped: ${{ steps.review.outputs.checks_skipped }}
           pr_number: ${{ github.event.pull_request.number }}
           sha: ${{ github.sha }}
           github_token: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
@@ -483,11 +492,14 @@ jobs:
 
       - name: Update comment
         if: always()
-        uses: constellos/claude-code-actions/.github/actions/review-comment@v1.1.2
+        uses: constellos/claude-code-actions/.github/actions/review-comment@v1.1.3
         with:
           review_name: Visual
           passed: ${{ steps.review.outputs.passed }}
           result_json: ${{ steps.review.outputs.result }}
+          checks_passed: ${{ steps.review.outputs.checks_passed }}
+          checks_failed: ${{ steps.review.outputs.checks_failed }}
+          checks_skipped: ${{ steps.review.outputs.checks_skipped }}
           pr_number: ${{ github.event.pull_request.number }}
           sha: ${{ github.sha }}
           github_token: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
@@ -524,11 +536,14 @@ jobs:
 
       - name: Update comment
         if: always()
-        uses: constellos/claude-code-actions/.github/actions/review-comment@v1.1.2
+        uses: constellos/claude-code-actions/.github/actions/review-comment@v1.1.3
         with:
           review_name: UX
           passed: ${{ steps.review.outputs.passed }}
           result_json: ${{ steps.review.outputs.result }}
+          checks_passed: ${{ steps.review.outputs.checks_passed }}
+          checks_failed: ${{ steps.review.outputs.checks_failed }}
+          checks_skipped: ${{ steps.review.outputs.checks_skipped }}
           pr_number: ${{ github.event.pull_request.number }}
           sha: ${{ github.sha }}
           github_token: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
