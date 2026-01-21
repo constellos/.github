@@ -10,7 +10,7 @@ on:
       actions_version:
         description: 'claude-code-actions version/ref'
         type: string
-        default: 'v1.1.3'
+        default: 'v1.1.4'
       skip_reviews:
         description: 'Skip AI reviews (for testing)'
         type: boolean
@@ -329,8 +329,8 @@ jobs:
     if: github.event_name == 'pull_request' && !failure() && !cancelled() && inputs.skip_reviews != true
     runs-on: ubuntu-latest
     outputs:
-      passed: ${{ steps.review.outputs.passed }}
-      result: ${{ steps.review.outputs.result }}
+      passed: ${{ steps.review.outputs.passed || 'false' }}
+      result: ${{ steps.review.outputs.result || '{}' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -347,16 +347,23 @@ jobs:
 
       - name: Run requirements review
         id: review
-        uses: constellos/claude-code-actions/.github/actions/requirements-reviewer@v1.1.3
+        uses: constellos/claude-code-actions/.github/actions/requirements-reviewer@v1.1.4
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           pr_number: ${{ github.event.pull_request.number }}
           branch: ${{ github.head_ref }}
           github_token: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
 
+      - name: Debug outputs
+        if: always()
+        run: |
+          echo "passed=${{ steps.review.outputs.passed }}"
+          echo "checks_passed=${{ steps.review.outputs.checks_passed }}"
+          echo "checks_failed=${{ steps.review.outputs.checks_failed }}"
+
       - name: Update comment
         if: always()
-        uses: constellos/claude-code-actions/.github/actions/review-comment@v1.1.3
+        uses: constellos/claude-code-actions/.github/actions/review-comment@v1.1.4
         with:
           review_name: Requirements
           passed: ${{ steps.review.outputs.passed }}
@@ -392,7 +399,7 @@ jobs:
 
       - name: Run code quality review
         id: review
-        uses: constellos/claude-code-actions/.github/actions/code-quality-reviewer@v1.1.3
+        uses: constellos/claude-code-actions/.github/actions/code-quality-reviewer@v1.1.4
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           pr_number: ${{ github.event.pull_request.number }}
@@ -400,7 +407,7 @@ jobs:
 
       - name: Update comment
         if: always()
-        uses: constellos/claude-code-actions/.github/actions/review-comment@v1.1.3
+        uses: constellos/claude-code-actions/.github/actions/review-comment@v1.1.4
         with:
           review_name: Code Quality
           passed: ${{ steps.review.outputs.passed }}
@@ -436,7 +443,7 @@ jobs:
 
       - name: Run context review
         id: review
-        uses: constellos/claude-code-actions/.github/actions/context-reviewer@v1.1.3
+        uses: constellos/claude-code-actions/.github/actions/context-reviewer@v1.1.4
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           pr_number: ${{ github.event.pull_request.number }}
@@ -444,7 +451,7 @@ jobs:
 
       - name: Update comment
         if: always()
-        uses: constellos/claude-code-actions/.github/actions/review-comment@v1.1.3
+        uses: constellos/claude-code-actions/.github/actions/review-comment@v1.1.4
         with:
           review_name: Context
           passed: ${{ steps.review.outputs.passed }}
@@ -484,7 +491,7 @@ jobs:
 
       - name: Run visual review
         id: review
-        uses: constellos/claude-code-actions/.github/actions/visual-reviewer@v1.1.3
+        uses: constellos/claude-code-actions/.github/actions/visual-reviewer@v1.1.4
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           pr_number: ${{ github.event.pull_request.number }}
@@ -492,7 +499,7 @@ jobs:
 
       - name: Update comment
         if: always()
-        uses: constellos/claude-code-actions/.github/actions/review-comment@v1.1.3
+        uses: constellos/claude-code-actions/.github/actions/review-comment@v1.1.4
         with:
           review_name: Visual
           passed: ${{ steps.review.outputs.passed }}
@@ -528,7 +535,7 @@ jobs:
 
       - name: Run UX review
         id: review
-        uses: constellos/claude-code-actions/.github/actions/ux-reviewer@v1.1.3
+        uses: constellos/claude-code-actions/.github/actions/ux-reviewer@v1.1.4
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           pr_number: ${{ github.event.pull_request.number }}
@@ -536,7 +543,7 @@ jobs:
 
       - name: Update comment
         if: always()
-        uses: constellos/claude-code-actions/.github/actions/review-comment@v1.1.3
+        uses: constellos/claude-code-actions/.github/actions/review-comment@v1.1.4
         with:
           review_name: UX
           passed: ${{ steps.review.outputs.passed }}
