@@ -20,7 +20,7 @@ jobs:
   # STATIC ANALYSIS
   # ============================================
   lint:
-    name: "Static Analysis / Lint (ESLint)"
+    name: "Lint"
     runs-on: ubuntu-latest
     outputs:
       has_app: ${{ steps.detect.outputs.has_app }}
@@ -72,7 +72,7 @@ jobs:
           $PM run lint
 
   types:
-    name: "Static Analysis / Types (TypeScript)"
+    name: "Types"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -127,7 +127,7 @@ jobs:
   # TESTS (requires Static Analysis)
   # ============================================
   unit:
-    name: "Tests / Unit (Vitest)"
+    name: "Unit"
     needs: [lint, types]
     runs-on: ubuntu-latest
     outputs:
@@ -207,7 +207,7 @@ jobs:
           $PM run test -- --passWithNoTests || npx vitest run --passWithNoTests
 
   e2e:
-    name: "Tests / E2E (Playwright)"
+    name: "E2E"
     needs: [lint, unit]
     if: needs.lint.outputs.has_app == 'true'
     runs-on: ubuntu-latest
