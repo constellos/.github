@@ -9,10 +9,6 @@ on:
     secrets:
       CLAUDE_CODE_OAUTH_TOKEN:
         required: true
-  push:
-    branches:
-      - '**'
-      - '!main'
   pull_request:
     branches:
       - '**'
@@ -40,10 +36,19 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Generate App Token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        continue-on-error: true
+        with:
+          app-id: ${{ secrets.CONSTELLOS_APP_ID }}
+          private-key: ${{ secrets.CONSTELLOS_APP_PRIVATE_KEY }}
+          skip-token-revoke: true
+
       - name: Extract branch context
         id: context
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
         run: |
           BRANCH_NAME="${{ github.head_ref || github.ref_name }}"
           echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
@@ -73,7 +78,7 @@ jobs:
         id: issue
         if: steps.context.outputs.issue_number != ''
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
         run: |
           ISSUE_NUM="${{ steps.context.outputs.issue_number }}"
 
@@ -95,7 +100,7 @@ jobs:
         id: pr_comments
         if: github.event_name == 'pull_request'
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
         run: |
           PR_NUM="${{ github.event.pull_request.number }}"
 
@@ -220,7 +225,7 @@ jobs:
       - name: Post review comment
         if: github.event_name == 'pull_request'
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
         run: |
           OUTPUT=$(cat /tmp/review_output.json)
           PASSED=$(echo "$OUTPUT" | jq -r '.passed // false')
@@ -290,7 +295,7 @@ jobs:
 
       - name: Set commit status
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
         run: |
           PASSED="${{ steps.extract.outputs.passed }}"
           SUMMARY="${{ steps.extract.outputs.summary }}"
