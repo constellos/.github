@@ -10,10 +10,22 @@ jobs:
   Claude-Code:
     name: Claude Code
     runs-on: ubuntu-latest
+    # anthropics/claude-code-action's setup doc gives these as the minimum:
+    # https://github.com/anthropics/claude-code-action/blob/main/docs/setup.md
+    # Read-only is not a safer version of this workflow, it is a broken one — the action
+    # "operates by updating a single initial comment with progress and results", so without
+    # `issues: write` / `pull-requests: write` Claude has no way to say anything at all, and
+    # without `contents: write` it cannot push the branch it was asked to work on. It starts,
+    # does the work, and fails at the end without naming permissions as the cause.
+    #
+    # A CALLER still caps this. A calling workflow that declares no `permissions:` block takes
+    # its repository's default — which is `read` in constellos/constellos — and caps these
+    # away again. Every caller therefore declares the same block; constellos/constellos#1686
+    # is the first.
     permissions:
-      contents: read
-      pull-requests: read
-      issues: read
+      contents: write
+      pull-requests: write
+      issues: write
       id-token: write
       actions: read
     steps:
